@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { api } from './lib/api';
-import { supabase } from './lib/supabase';
-import './style.css';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import "./style.css";
+
+createRoot(document.getElementById("root")).render(<App />);
 
 function formatPct(v){ return Number.isFinite(v) ? `${(v*100).toFixed(2)}%` : '-'; }
 function formatUsd(v){ return Number.isFinite(v) ? `$${v.toLocaleString(undefined,{maximumFractionDigits:2})}` : '-'; }
