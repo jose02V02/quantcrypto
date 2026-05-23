@@ -93,3 +93,4 @@ Test backend: `http://localhost:3001/health`
 ## 6. Nota importante
 
 Questo progetto non promette guadagni e non è consulenza finanziaria. Produce analisi quantitativa su dati reali, ma il mercato crypto resta altamente rischioso.
+redeploy frontend
