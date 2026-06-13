@@ -13,13 +13,14 @@ const http = axios.create({ timeout: 15000 });
  * CoinGecko: market_chart con `days`. L'id e' il nome coin (es. "bitcoin").
  * API pubblica, nessuna chiave richiesta per uso base.
  */
-export async function fetchCoinGecko(coin, days) {
+export async function fetchCoinGecko(coin, days, currency = 'usd') {
   const id = String(coin || '').trim().toLowerCase();
+  const vs = String(currency || 'usd').trim().toLowerCase();
   const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(
     id
   )}/market_chart`;
   const { data } = await http.get(url, {
-    params: { vs_currency: 'usd', days, interval: 'daily' },
+    params: { vs_currency: vs, days, interval: 'daily' },
   });
   if (!data?.prices?.length) {
     throw new Error(`Nessun dato da CoinGecko per "${id}"`);
@@ -30,7 +31,7 @@ export async function fetchCoinGecko(coin, days) {
     high: close, // market_chart non espone OHLC: high/low = close
     low: close,
   }));
-  return { source: 'coingecko', symbol: id, candles };
+  return { source: 'coingecko', symbol: id, currency: vs, candles };
 }
 
 /**
@@ -54,10 +55,11 @@ export async function fetchBinance(symbol, days) {
     high: Number(k[2]),
     low: Number(k[3]),
   }));
-  return { source: 'binance', symbol: sym, candles };
+  // Le coppie Binance sono in USDT (~USD): la valuta e' fissa.
+  return { source: 'binance', symbol: sym, currency: 'usd', candles };
 }
 
-export async function fetchMarket(provider, symbol, days) {
+export async function fetchMarket(provider, symbol, days, currency = 'usd') {
   if (provider === 'binance') return fetchBinance(symbol, days);
-  return fetchCoinGecko(symbol, days);
+  return fetchCoinGecko(symbol, days, currency);
 }

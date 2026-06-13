@@ -16,10 +16,12 @@ import { api } from './api';
 
 const fmtPct = (v) =>
   Number.isFinite(v) ? `${(v * 100).toFixed(2)}%` : '—';
-const fmtUsd = (v) =>
-  Number.isFinite(v)
-    ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-    : '—';
+const CURRENCY_SYMBOL = { usd: '$', eur: '€' };
+const fmtMoney = (v, currency = 'usd') => {
+  if (!Number.isFinite(v)) return '—';
+  const sym = CURRENCY_SYMBOL[currency] || '';
+  return `${sym}${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+};
 
 function Login({ session }) {
   if (!supabaseEnabled) {
@@ -49,6 +51,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [coin, setCoin] = useState('bitcoin');
   const [provider, setProvider] = useState('coingecko');
+  const [currency, setCurrency] = useState('eur');
   const [days, setDays] = useState(180);
   const [horizon, setHorizon] = useState(30);
   const [data, setData] = useState(null);
@@ -72,7 +75,7 @@ export default function App() {
     setError('');
     try {
       const res = await api.get('/api/market/analyze', {
-        params: { coin, provider, days, horizon },
+        params: { coin, provider, days, horizon, currency },
       });
       setData(res.data);
     } catch (e) {
@@ -87,7 +90,7 @@ export default function App() {
     setError('');
     try {
       const res = await api.get('/api/market/backtest', {
-        params: { coin, provider, days },
+        params: { coin, provider, days, currency },
       });
       setBt(res.data);
     } catch (e) {
@@ -124,6 +127,8 @@ export default function App() {
 
   const a = data?.analysis;
   const fc = a?.forecast;
+  const cur = a?.currency || currency;
+  const money = (v) => fmtMoney(v, cur);
 
   // Combina storico recente + banda di previsione in un'unica serie per il grafico.
   const forecastChart = fc
@@ -165,6 +170,15 @@ export default function App() {
           <option value="coingecko">CoinGecko (es. bitcoin)</option>
           <option value="binance">Binance (es. BTCUSDT)</option>
         </select>
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          disabled={provider === 'binance'}
+          title={provider === 'binance' ? 'Binance opera in USD (USDT)' : ''}
+        >
+          <option value="eur">EUR €</option>
+          <option value="usd">USD $</option>
+        </select>
         <label className="field">
           giorni storico
           <input
@@ -201,7 +215,7 @@ export default function App() {
           <section className="cards">
             <div>
               <b>Prezzo reale</b>
-              <span>{fmtUsd(a.latestPrice)}</span>
+              <span>{money(a.latestPrice)}</span>
             </div>
             <div>
               <b>RSI 14</b>
@@ -216,7 +230,7 @@ export default function App() {
             <div>
               <b>EMA 20 / 50</b>
               <span>
-                {fmtUsd(a.ema20)} / {fmtUsd(a.ema50)}
+                {money(a.ema20)} / {money(a.ema50)}
               </span>
             </div>
             <div>
@@ -238,7 +252,7 @@ export default function App() {
             <div>
               <b>Bollinger (sup/inf)</b>
               <span>
-                {fmtUsd(a.bollinger?.upper)} / {fmtUsd(a.bollinger?.lower)}
+                {money(a.bollinger?.upper)} / {money(a.bollinger?.lower)}
               </span>
             </div>
             <div>
@@ -251,7 +265,7 @@ export default function App() {
             </div>
             <div>
               <b>ATR 14</b>
-              <span>{fmtUsd(a.atr14)}</span>
+              <span>{money(a.atr14)}</span>
             </div>
             <div>
               <b>ATR % prezzo</b>
@@ -315,10 +329,10 @@ export default function App() {
                 simulazioni)
               </h2>
               <p className="muted">
-                Prezzo atteso (mediana): <b>{fmtUsd(fc.expectedPrice)}</b> ·
+                Prezzo atteso (mediana): <b>{money(fc.expectedPrice)}</b> ·
                 rendimento atteso <b>{fmtPct(fc.expectedReturn)}</b> · prob. al
                 rialzo <b>{(fc.probabilityUp * 100).toFixed(0)}%</b> · banda 90%:{' '}
-                {fmtUsd(fc.lowPrice)} – {fmtUsd(fc.highPrice)}
+                {money(fc.lowPrice)} – {money(fc.highPrice)}
               </p>
               <ResponsiveContainer width="100%" height={340}>
                 <AreaChart data={forecastChart}>

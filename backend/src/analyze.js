@@ -92,6 +92,7 @@ export function analyzeMarket(market, opts = {}) {
   return {
     source: market.source,
     symbol: market.symbol,
+    currency: market.currency || 'usd',
     points: closes.length,
     latestPrice,
     rsi14,

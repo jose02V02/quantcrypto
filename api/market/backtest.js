@@ -7,8 +7,9 @@ export default async function handler(req, res) {
     const coin = req.query.coin || 'bitcoin';
     const provider = req.query.provider || process.env.MARKET_PROVIDER || 'coingecko';
     const days = Math.min(1000, Math.max(60, Number(req.query.days) || 365));
+    const currency = req.query.currency || 'usd';
 
-    const market = await fetchMarket(provider, coin, days);
+    const market = await fetchMarket(provider, coin, days, currency);
     const result = backtest(market);
     res.status(200).json(result);
   } catch (e) {
