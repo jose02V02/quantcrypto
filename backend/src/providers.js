@@ -31,7 +31,36 @@ export async function fetchCoinGecko(coin, days, currency = 'usd') {
     high: close, // market_chart non espone OHLC: high/low = close
     low: close,
   }));
-  return { source: 'coingecko', symbol: id, currency: vs, candles };
+
+  // Prezzo "live": market_chart e' a granularita' giornaliera, quindi l'ultimo
+  // punto e' una chiusura potenzialmente vecchia di ore. Recuperiamo lo spot
+  // piu' recente e aggiorniamo/aggiungiamo l'ultimo punto. Se fallisce,
+  // restiamo sulla chiusura giornaliera (nessun crash).
+  let asOf = candles[candles.length - 1]?.date;
+  try {
+    const live = await http.get('https://api.coingecko.com/api/v3/simple/price', {
+      params: { ids: id, vs_currencies: vs, include_last_updated_at: true },
+    });
+    const px = live.data?.[id]?.[vs];
+    const ts = live.data?.[id]?.last_updated_at;
+    if (Number.isFinite(px)) {
+      const isoTs = ts ? new Date(ts * 1000).toISOString() : new Date().toISOString();
+      const day = isoTs.slice(0, 10);
+      const last = candles[candles.length - 1];
+      if (day > last.date) {
+        candles.push({ date: day, close: px, high: px, low: px });
+      } else {
+        last.close = px;
+        last.high = Math.max(last.high, px);
+        last.low = Math.min(last.low, px);
+      }
+      asOf = isoTs;
+    }
+  } catch {
+    /* lo spot non e' essenziale: usiamo la chiusura giornaliera */
+  }
+
+  return { source: 'coingecko', symbol: id, currency: vs, asOf, candles };
 }
 
 /**
@@ -56,7 +85,15 @@ export async function fetchBinance(symbol, days) {
     low: Number(k[3]),
   }));
   // Le coppie Binance sono in USDT (~USD): la valuta e' fissa.
-  return { source: 'binance', symbol: sym, currency: 'usd', candles };
+  // L'ultima candela giornaliera e' "in formazione": il suo close e' gia' il
+  // prezzo live, quindi asOf = adesso.
+  return {
+    source: 'binance',
+    symbol: sym,
+    currency: 'usd',
+    asOf: new Date().toISOString(),
+    candles,
+  };
 }
 
 export async function fetchMarket(provider, symbol, days, currency = 'usd') {

@@ -129,6 +129,12 @@ export default function App() {
   const fc = a?.forecast;
   const cur = a?.currency || currency;
   const money = (v) => fmtMoney(v, cur);
+  const asOfLabel = a?.asOf
+    ? new Date(a.asOf).toLocaleString(undefined, {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })
+    : null;
 
   // Combina storico recente + banda di previsione in un'unica serie per il grafico.
   const forecastChart = fc
@@ -212,6 +218,14 @@ export default function App() {
 
       {a && (
         <>
+          {asOfLabel && (
+            <p className="muted">
+              Prezzo aggiornato al {asOfLabel}
+              {a.source === 'coingecko'
+                ? ' (CoinGecko, cache di pochi minuti)'
+                : ' (Binance, candela in tempo reale)'}
+            </p>
+          )}
           <section className="cards">
             <div>
               <b>Prezzo reale</b>
