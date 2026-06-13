@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Analisi quantitativa crypto su dati reali: React/Vite + Express + Supabase.",
+  "type": "module",
   "workspaces": ["frontend", "backend"],
   "scripts": {
     "install:all": "npm install --workspaces",
@@ -11,6 +12,10 @@
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "npm run build --workspace frontend",
     "test": "npm test --workspace backend"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "axios": "^1.8.4"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
