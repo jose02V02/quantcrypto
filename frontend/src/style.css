@@ -26,7 +26,7 @@ p { color: #aab8d4; }
 .auth { display: flex; gap: 12px; align-items: center; }
 .controls {
   display: grid;
-  grid-template-columns: 2fr 1.4fr 1fr 1fr auto auto;
+  grid-template-columns: 2fr 1.4fr 1fr 1fr auto auto auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 20px;
@@ -55,6 +55,8 @@ button:disabled { opacity: 0.6; cursor: default; }
 }
 .cards b { display: block; color: #8fb3ff; margin-bottom: 8px; }
 .cards span { font-size: 21px; font-weight: 800; }
+.cards span.pos { color: #2ec27e; }
+.cards span.neg { color: #ff5975; }
 .chart { margin: 20px 0; }
 .verdict { margin: 20px 0; border-left: 6px solid #294468; }
 .verdict.rialzista { border-left-color: #2ec27e; }

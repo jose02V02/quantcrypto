@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { fetchMarket } from './providers.js';
 import { analyzeMarket } from './analyze.js';
+import { backtest } from './backtest.js';
 
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -78,6 +79,23 @@ app.get('/api/market/analyze', async (req, res) => {
     const status = e.response?.status === 404 ? 404 : 400;
     res.status(status).json({
       error: e.response?.data?.error || e.message || 'Errore di analisi',
+    });
+  }
+});
+
+// --- Backtesting della strategia ---
+app.get('/api/market/backtest', async (req, res) => {
+  try {
+    const coin = req.query.coin || 'bitcoin';
+    const provider = req.query.provider || DEFAULT_PROVIDER;
+    const days = Math.min(1000, Math.max(60, Number(req.query.days) || 365));
+    const market = await fetchMarket(provider, coin, days);
+    const result = backtest(market);
+    res.json(result);
+  } catch (e) {
+    const status = e.response?.status === 404 ? 404 : 400;
+    res.status(status).json({
+      error: e.response?.data?.error || e.message || 'Errore di backtest',
     });
   }
 });

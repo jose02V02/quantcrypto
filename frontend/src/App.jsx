@@ -55,6 +55,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [watch, setWatch] = useState([]);
+  const [bt, setBt] = useState(null);
+  const [btLoading, setBtLoading] = useState(false);
 
   useEffect(() => {
     if (!supabaseEnabled) return;
@@ -77,6 +79,21 @@ export default function App() {
       setError(e.response?.data?.error || e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runBacktest() {
+    setBtLoading(true);
+    setError('');
+    try {
+      const res = await api.get('/api/market/backtest', {
+        params: { coin, provider, days },
+      });
+      setBt(res.data);
+    } catch (e) {
+      setError(e.response?.data?.error || e.message);
+    } finally {
+      setBtLoading(false);
     }
   }
 
@@ -170,6 +187,9 @@ export default function App() {
         </label>
         <button onClick={analyze} disabled={loading}>
           {loading ? 'Analisi…' : 'Analizza'}
+        </button>
+        <button onClick={runBacktest} disabled={btLoading}>
+          {btLoading ? 'Backtest…' : 'Backtest'}
         </button>
         <button onClick={addWatch}>+ Watchlist</button>
       </section>
@@ -341,6 +361,85 @@ export default function App() {
             </section>
           )}
         </>
+      )}
+
+      {bt && (
+        <section className="panel chart">
+          <h2>
+            Backtest strategia vs Buy &amp; Hold ({bt.symbol} · {bt.fromDate} →{' '}
+            {bt.toDate})
+          </h2>
+          <div className="cards">
+            <div>
+              <b>Rendimento strategia</b>
+              <span className={bt.strategyReturn >= 0 ? 'pos' : 'neg'}>
+                {fmtPct(bt.strategyReturn)}
+              </span>
+            </div>
+            <div>
+              <b>Buy &amp; Hold</b>
+              <span className={bt.buyHoldReturn >= 0 ? 'pos' : 'neg'}>
+                {fmtPct(bt.buyHoldReturn)}
+              </span>
+            </div>
+            <div>
+              <b>Sovraperformance</b>
+              <span className={bt.outperformance >= 0 ? 'pos' : 'neg'}>
+                {fmtPct(bt.outperformance)}
+              </span>
+            </div>
+            <div>
+              <b>Operazioni</b>
+              <span>{bt.trades}</span>
+            </div>
+            <div>
+              <b>Win rate</b>
+              <span>
+                {bt.winRate != null ? `${(bt.winRate * 100).toFixed(0)}%` : '—'}
+              </span>
+            </div>
+            <div>
+              <b>Drawdown strategia</b>
+              <span className="neg">{fmtPct(bt.maxDrawdown)}</span>
+            </div>
+            <div>
+              <b>Drawdown B&amp;H</b>
+              <span className="neg">{fmtPct(bt.buyHoldMaxDrawdown)}</span>
+            </div>
+            <div>
+              <b>Sharpe strategia</b>
+              <span>{bt.sharpe?.toFixed(2) ?? '—'}</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={340}>
+            <LineChart data={bt.curve}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1d3556" />
+              <XAxis dataKey="date" minTickGap={40} />
+              <YAxis domain={['auto', 'auto']} width={60} tickFormatter={(v) => `${v.toFixed(1)}x`} />
+              <Tooltip formatter={(v) => `${Number(v).toFixed(3)}x`} />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="strategy"
+                name="Strategia"
+                stroke="#2ec27e"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="buyhold"
+                name="Buy & Hold"
+                stroke="#18a2ff"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="disclaimer">
+            Capitale iniziale = 1x. Strategia long/flat sui segnali del verdetto
+            (senza lookahead). ⚠️ Le performance passate non garantiscono
+            risultati futuri; nessun costo di transazione/slippage è incluso.
+          </p>
+        </section>
       )}
 
       <section className="panel">
