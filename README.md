@@ -1,96 +1,116 @@
-# QuantumTrade Real Full-Stack
+# QuantCrypto — Analisi quantitativa su dati reali
 
-Progetto reale full-stack: React/Vite frontend, Node.js/Express backend, Supabase Auth + PostgreSQL, prezzi reali da CoinGecko o Binance, calcoli tecnici reali: RSI, MACD, EMA, rendimento logaritmico, volatilità e drawdown.
+Progetto full-stack **funzionante**: React/Vite (frontend) + Node.js/Express
+(backend) + Supabase (auth opzionale + PostgreSQL). Scarica prezzi storici
+**reali** da CoinGecko o Binance e calcola indicatori veri (RSI, MACD, EMA/SMA,
+rendimento logaritmico, volatilità annualizzata, max drawdown, Sharpe) più una
+**proiezione probabilistica trasparente** (Monte Carlo / moto browniano
+geometrico) con bande di confidenza.
+
+> ⚠️ **Onestà prima di tutto.** Nessun modello prevede il mercato con certezza.
+> QuantCrypto è uno strumento di analisi quantitativa e di proiezione
+> *statistica* su dati reali. **Non** è consulenza finanziaria e **non** promette
+> guadagni. Il mercato crypto è altamente rischioso.
 
 ## Struttura
 
 ```txt
-quantcrypto-real/
-├─ frontend/        React + Vite
+quantcrypto/
+├─ frontend/        React + Vite (dashboard, grafici)
+│  └─ src/          App.jsx, api.js, supabase.js, style.css
 ├─ backend/         Node.js + Express
+│  └─ src/          server.js, indicators.js, forecast.js, providers.js, analyze.js
 ├─ supabase/        schema PostgreSQL + RLS
-├─ render.yaml      deploy backend Render
-├─ netlify.toml     deploy frontend Netlify
-└─ package.json     workspace root
+├─ render.yaml      deploy backend su Render
+├─ netlify.toml     deploy frontend su Netlify
+├─ vercel.json      deploy frontend su Vercel
+└─ package.json     workspace root (frontend + backend)
 ```
 
-## 1. Crea Supabase
+## Cosa calcola davvero
+
+| Indicatore | Significato |
+|---|---|
+| RSI 14 (Wilder) | momentum, ipercomprato/ipervenduto |
+| MACD (12,26,9) | incrocio medie esponenziali, momentum |
+| EMA 20 / 50, SMA 200 | trend |
+| Rendimento periodo | performance totale sul range |
+| Volatilità annualizzata | rischio (dev. std rendimenti log × √365) |
+| Max drawdown | peggior calo dal picco |
+| Sharpe ratio | rendimento corretto per il rischio |
+| Proiezione Monte Carlo | mediana, banda 5–95%, probabilità di rialzo |
+
+Il **verdetto** (RIALZISTA / NEUTRALE / RIBASSISTA) è una sintesi euristica e
+trasparente dei segnali sopra — non un consiglio.
+
+## Avvio locale
+
+```bash
+npm install            # installa frontend + backend (workspaces)
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+npm run dev            # avvia backend (3001) e frontend (5173) insieme
+```
+
+- Frontend: `http://localhost:5173`
+- Backend health: `http://localhost:3001/health`
+- Test backend: `npm test`
+
+L'analisi di mercato funziona **anche senza Supabase**. Supabase serve solo per
+login Google e watchlist salvata su database.
+
+## Configurazione `.env`
+
+**backend/.env**
+```
+PORT=3001
+FRONTEND_URL=http://localhost:5173
+MARKET_PROVIDER=coingecko          # oppure binance
+SUPABASE_URL=...                   # opzionale (auth + watchlist)
+SUPABASE_ANON_KEY=...              # opzionale
+SUPABASE_SERVICE_ROLE_KEY=...      # SEGRETA, solo backend
+```
+
+**frontend/.env**
+```
+VITE_API_URL=http://localhost:3001
+VITE_SUPABASE_URL=...              # opzionale
+VITE_SUPABASE_ANON_KEY=...         # opzionale, mai la service role
+```
+
+## Supabase (opzionale)
 
 1. Crea un progetto su Supabase.
-2. Vai in SQL Editor e incolla `supabase/schema.sql`.
-3. Vai in Authentication → Providers → abilita Google.
-4. Inserisci Client ID e Client Secret di Google Cloud.
-5. In Authentication → URL Configuration aggiungi:
-   - local: `http://localhost:5173`
-   - produzione: URL Netlify/Vercel del frontend.
+2. SQL Editor → incolla `supabase/schema.sql`.
+3. Authentication → Providers → abilita Google (Client ID/Secret da Google Cloud).
+4. Authentication → URL Configuration → aggiungi `http://localhost:5173` e l'URL di produzione.
 
-## 2. Configura `.env`
-
-Copia gli esempi:
-
-```bash
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env
-```
-
-Compila le chiavi Supabase. Nel frontend usa solo `anon key`. Nel backend usa anche `service role key`, ma non pubblicarla mai nel frontend.
-
-## 3. Avvio locale
-
-```bash
-npm install
-npm run install:all
-npm run dev
-```
-
-Frontend: `http://localhost:5173`  
-Backend: `http://localhost:3001`  
-Test backend: `http://localhost:3001/health`
-
-## 4. Come funziona davvero
-
-- Il frontend chiama `/api/market/analyze`.
-- Il backend scarica serie storiche reali da CoinGecko o Binance.
-- Il backend calcola indicatori matematici reali con dati storici reali.
-- La dashboard mostra solo risultati derivati da API reali.
-- La watchlist viene salvata su PostgreSQL/Supabase per l'utente autenticato.
-
-## 5. Deploy consigliato
+## Deploy
 
 ### Backend su Render
+1. Push su GitHub.
+2. Render → New → Blueprint (usa `render.yaml`) oppure Web Service con root `backend`.
+3. Build: `npm install` · Start: `npm start`.
+4. Env: `FRONTEND_URL`, `MARKET_PROVIDER`, e (se usi auth) le chiavi Supabase.
 
-1. Carica il progetto su GitHub.
-2. Su Render: New → Web Service.
-3. Root directory: `backend`.
-4. Build command: `npm install`.
-5. Start command: `npm start`.
-6. Aggiungi env:
-   - `FRONTEND_URL=https://tuo-frontend.netlify.app`
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `MARKET_PROVIDER=coingecko`
+### Frontend su Netlify / Vercel
+- Base/Root directory: `frontend`
+- Build: `npm run build` · Publish: `dist`
+- Env: `VITE_API_URL` (URL del backend Render), `VITE_SUPABASE_*` opzionali.
 
-### Frontend su Netlify
+## Note tecniche
 
-1. New site from Git.
-2. Base directory: `frontend`.
-3. Build command: `npm run build`.
-4. Publish directory: `frontend/dist` oppure `dist` se base è `frontend`.
-5. Env:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_API_URL=https://tuo-backend.onrender.com`
+- Gli indicatori sono implementati a mano in `backend/src/indicators.js`
+  (nessuna black-box), con test in `indicators.test.js`.
+- La previsione (`forecast.js`) usa drift e volatilità stimati dai dati storici
+  per simulare migliaia di traiettorie GBM; restituisce mediana e percentili.
+  È riproducibile (seed deterministico nei test).
+- I provider dati sono in `providers.js` con output normalizzato.
 
-### Frontend su Vercel
+## Idee per evolverlo
 
-1. Importa repository.
-2. Framework: Vite.
-3. Root directory: `frontend`.
-4. Env uguali a Netlify.
-5. Le variabili esposte al browser devono iniziare con `VITE_`.
-
-## 6. Nota importante
-
-Questo progetto non promette guadagni e non è consulenza finanziaria. Produce analisi quantitativa su dati reali, ma il mercato crypto resta altamente rischioso.
-redeploy frontend
+- Aggiungere altri indicatori (Bollinger, ATR, Ichimoku).
+- Backtesting di una strategia sui segnali del verdetto.
+- Modelli di forecast più ricchi (GARCH per la volatilità, ARIMA, ML).
+- Caching/rate-limit dei provider per evitare 403 in produzione.
+- Alert su soglie RSI/prezzo via email.
