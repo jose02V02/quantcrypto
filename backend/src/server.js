@@ -77,7 +77,7 @@ app.get('/api/market/analyze', async (req, res) => {
     const analysis = analyzeMarket(market, { forecastHorizon: horizon });
     res.json({ source: analysis.source, analysis });
   } catch (e) {
-    const status = e.response?.status === 404 ? 404 : 400;
+    const status = e.statusCode || (e.response?.status === 404 ? 404 : 400);
     res.status(status).json({
       error: e.response?.data?.error || e.message || 'Errore di analisi',
     });
@@ -95,7 +95,7 @@ app.get('/api/market/backtest', async (req, res) => {
     const result = backtest(market);
     res.json(result);
   } catch (e) {
-    const status = e.response?.status === 404 ? 404 : 400;
+    const status = e.statusCode || (e.response?.status === 404 ? 404 : 400);
     res.status(status).json({
       error: e.response?.data?.error || e.message || 'Errore di backtest',
     });

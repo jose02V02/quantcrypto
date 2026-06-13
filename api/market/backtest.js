@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const result = backtest(market);
     res.status(200).json(result);
   } catch (e) {
-    const status = e.response?.status === 404 ? 404 : 400;
+    const status = e.statusCode || (e.response?.status === 404 ? 404 : 400);
     res.status(status).json({
       error: e.response?.data?.error || e.message || 'Errore di backtest',
     });
