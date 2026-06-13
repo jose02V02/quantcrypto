@@ -2,7 +2,8 @@
 // chiusura giornalieri da CoinGecko o Binance.
 //
 // Output normalizzato per entrambi i provider:
-//   { source, symbol, candles: [{ date: 'YYYY-MM-DD', close: number }] }
+//   { source, symbol, candles: [{ date, close, high, low }] }
+// Nota: CoinGecko market_chart fornisce solo il prezzo -> high/low = close.
 
 import axios from 'axios';
 
@@ -26,6 +27,8 @@ export async function fetchCoinGecko(coin, days) {
   const candles = data.prices.map(([ts, close]) => ({
     date: new Date(ts).toISOString().slice(0, 10),
     close,
+    high: close, // market_chart non espone OHLC: high/low = close
+    low: close,
   }));
   return { source: 'coingecko', symbol: id, candles };
 }
@@ -48,6 +51,8 @@ export async function fetchBinance(symbol, days) {
   const candles = data.map((k) => ({
     date: new Date(k[0]).toISOString().slice(0, 10),
     close: Number(k[4]),
+    high: Number(k[2]),
+    low: Number(k[3]),
   }));
   return { source: 'binance', symbol: sym, candles };
 }

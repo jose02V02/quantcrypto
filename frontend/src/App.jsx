@@ -215,6 +215,28 @@ export default function App() {
               <b>Sharpe ann.</b>
               <span>{a.sharpeRatio?.toFixed(2) ?? '—'}</span>
             </div>
+            <div>
+              <b>Bollinger (sup/inf)</b>
+              <span>
+                {fmtUsd(a.bollinger?.upper)} / {fmtUsd(a.bollinger?.lower)}
+              </span>
+            </div>
+            <div>
+              <b>Bollinger %B</b>
+              <span>
+                {a.bollinger?.percentB != null
+                  ? `${(a.bollinger.percentB * 100).toFixed(0)}%`
+                  : '—'}
+              </span>
+            </div>
+            <div>
+              <b>ATR 14</b>
+              <span>{fmtUsd(a.atr14)}</span>
+            </div>
+            <div>
+              <b>ATR % prezzo</b>
+              <span>{fmtPct(a.atrPercent)}</span>
+            </div>
           </section>
 
           <section className={verdictClass}>
@@ -229,14 +251,39 @@ export default function App() {
           </section>
 
           <section className="panel chart">
-            <h2>Serie storica reale ({a.source})</h2>
+            <h2>Serie storica reale + Bande di Bollinger ({a.source})</h2>
             <ResponsiveContainer width="100%" height={340}>
               <LineChart data={a.chart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1d3556" />
                 <XAxis dataKey="date" minTickGap={40} />
                 <YAxis domain={['auto', 'auto']} width={70} />
                 <Tooltip />
-                <Line type="monotone" dataKey="close" stroke="#18a2ff" dot={false} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="bbUpper"
+                  name="Bollinger sup."
+                  stroke="#6f5cff"
+                  strokeDasharray="4 4"
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  name="prezzo"
+                  stroke="#18a2ff"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="bbLower"
+                  name="Bollinger inf."
+                  stroke="#6f5cff"
+                  strokeDasharray="4 4"
+                  dot={false}
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </section>

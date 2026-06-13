@@ -130,6 +130,69 @@ export function maxDrawdown(values) {
   return maxDd;
 }
 
+/**
+ * Serie di Bande di Bollinger (rolling). Ritorna un array allineato ai valori:
+ * null finche' non c'e' abbastanza storia, poi { upper, middle, lower }.
+ * Usa la deviazione standard di popolazione (denominatore = period), come da
+ * convenzione di Bollinger.
+ */
+export function bollingerSeries(values, period = 20, mult = 2) {
+  const out = values.map(() => null);
+  for (let i = period - 1; i < values.length; i++) {
+    const slice = values.slice(i - period + 1, i + 1);
+    const m = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((acc, v) => acc + (v - m) ** 2, 0) / period;
+    const sd = Math.sqrt(variance);
+    out[i] = { upper: m + mult * sd, middle: m, lower: m - mult * sd };
+  }
+  return out;
+}
+
+/**
+ * Bande di Bollinger sull'ultimo punto + indicatori derivati:
+ *  - percentB: posizione del prezzo nella banda (0 = banda bassa, 1 = alta)
+ *  - bandwidth: ampiezza relativa della banda (volatilita')
+ */
+export function bollingerBands(values, period = 20, mult = 2) {
+  const series = bollingerSeries(values, period, mult);
+  const last = series[series.length - 1];
+  if (!last) return null;
+  const price = values[values.length - 1];
+  const width = last.upper - last.lower;
+  return {
+    upper: last.upper,
+    middle: last.middle,
+    lower: last.lower,
+    percentB: width === 0 ? null : (price - last.lower) / width,
+    bandwidth: last.middle === 0 ? null : width / last.middle,
+  };
+}
+
+/**
+ * ATR (Average True Range) di Wilder su `period` giorni.
+ * Richiede massimi, minimi e chiusure. Se il provider non fornisce
+ * high/low (es. CoinGecko market_chart), high=low=close e l'ATR si riduce
+ * alla media delle variazioni assolute giornaliere.
+ */
+export function atr(highs, lows, closes, period = 14) {
+  const n = closes.length;
+  if (n < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < n; i++) {
+    const tr = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+    trs.push(tr);
+  }
+  let atrVal = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    atrVal = (atrVal * (period - 1) + trs[i]) / period;
+  }
+  return atrVal;
+}
+
 /** Sharpe ratio annualizzato (risk-free = 0 di default). */
 export function sharpeRatio(returns, periodsPerYear = 365, riskFree = 0) {
   if (returns.length < 2) return null;

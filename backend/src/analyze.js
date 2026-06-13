@@ -11,6 +11,9 @@ import {
   annualizedVolatility,
   maxDrawdown,
   sharpeRatio,
+  bollingerBands,
+  bollingerSeries,
+  atr,
 } from './indicators.js';
 import { forecast } from './forecast.js';
 
@@ -18,7 +21,7 @@ import { forecast } from './forecast.js';
  * Verdetto euristico basato su segnali standard. NON e' un consiglio
  * finanziario: e' una sintesi leggibile dei segnali calcolati.
  */
-function buildVerdict({ rsi14, macdObj, price, ema20, ema50, fc }) {
+function buildVerdict({ rsi14, macdObj, price, ema20, ema50, fc, bb }) {
   let score = 0;
   const reasons = [];
 
@@ -49,6 +52,15 @@ function buildVerdict({ rsi14, macdObj, price, ema20, ema50, fc }) {
       reasons.push('Prezzo sotto EMA20 sotto EMA50 (trend ribassista)');
     }
   }
+  if (bb && bb.percentB != null) {
+    if (bb.percentB < 0.05) {
+      score += 1;
+      reasons.push('Prezzo sulla banda di Bollinger inferiore (possibile rimbalzo)');
+    } else if (bb.percentB > 0.95) {
+      score -= 1;
+      reasons.push('Prezzo sulla banda di Bollinger superiore (possibile eccesso)');
+    }
+  }
   if (fc && fc.probabilityUp != null) {
     if (fc.probabilityUp > 0.55) {
       score += 1;
@@ -72,6 +84,8 @@ function buildVerdict({ rsi14, macdObj, price, ema20, ema50, fc }) {
 export function analyzeMarket(market, opts = {}) {
   const candles = market.candles.filter((c) => Number.isFinite(c.close));
   const closes = candles.map((c) => c.close);
+  const highs = candles.map((c) => (Number.isFinite(c.high) ? c.high : c.close));
+  const lows = candles.map((c) => (Number.isFinite(c.low) ? c.low : c.close));
   if (closes.length < 35) {
     throw new Error(
       `Servono almeno 35 punti di dati, ricevuti ${closes.length}. Aumenta "days".`
@@ -85,6 +99,9 @@ export function analyzeMarket(market, opts = {}) {
   const ema50 = ema(closes, 50);
   const sma200 = sma(closes, 200);
   const latestPrice = closes[closes.length - 1];
+  const bb = bollingerBands(closes, 20, 2);
+  const bbSeries = bollingerSeries(closes, 20, 2);
+  const atr14 = atr(highs, lows, closes, 14);
   const fc = forecast(closes, { horizon: opts.forecastHorizon ?? 30 });
 
   const verdict = buildVerdict({
@@ -94,7 +111,16 @@ export function analyzeMarket(market, opts = {}) {
     ema20,
     ema50,
     fc,
+    bb,
   });
+
+  // Grafico storico con overlay delle bande di Bollinger.
+  const chart = candles.map((c, i) => ({
+    date: c.date,
+    close: c.close,
+    bbUpper: bbSeries[i]?.upper ?? null,
+    bbLower: bbSeries[i]?.lower ?? null,
+  }));
 
   return {
     source: market.source,
@@ -106,12 +132,15 @@ export function analyzeMarket(market, opts = {}) {
     ema20,
     ema50,
     sma200,
+    bollinger: bb,
+    atr14,
+    atrPercent: atr14 != null ? atr14 / latestPrice : null,
     totalReturn: totalReturn(closes),
     volatilityAnnualized: annualizedVolatility(returns),
     maxDrawdown: maxDrawdown(closes),
     sharpeRatio: sharpeRatio(returns),
     forecast: fc,
     verdict,
-    chart: candles, // [{date, close}]
+    chart, // [{date, close, bbUpper, bbLower}]
   };
 }

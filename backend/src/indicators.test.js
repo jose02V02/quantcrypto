@@ -9,6 +9,9 @@ import {
   maxDrawdown,
   stdDev,
   annualizedVolatility,
+  bollingerBands,
+  bollingerSeries,
+  atr,
 } from './indicators.js';
 import { forecast } from './forecast.js';
 
@@ -53,6 +56,40 @@ test('totalReturn e maxDrawdown', () => {
 test('stdDev e volatilita annualizzata', () => {
   assert.equal(stdDev([5, 5, 5, 5]), 0);
   assert.equal(annualizedVolatility([0, 0, 0]), 0);
+});
+
+test('bollinger su serie costante collassa sulla media', () => {
+  const v = Array(30).fill(50);
+  const bb = bollingerBands(v, 20, 2);
+  assert.equal(bb.upper, 50);
+  assert.equal(bb.middle, 50);
+  assert.equal(bb.lower, 50);
+  assert.equal(bb.percentB, null); // banda di ampiezza zero
+});
+
+test('bollinger: prezzo dentro le bande, ordine corretto', () => {
+  const v = Array.from({ length: 40 }, (_, i) => 100 + Math.sin(i) * 5);
+  const bb = bollingerBands(v, 20, 2);
+  assert.ok(bb.lower < bb.middle && bb.middle < bb.upper);
+  assert.ok(bb.percentB >= -0.5 && bb.percentB <= 1.5);
+});
+
+test('bollingerSeries allineata e con null iniziali', () => {
+  const v = Array.from({ length: 25 }, (_, i) => i + 1);
+  const s = bollingerSeries(v, 20, 2);
+  assert.equal(s.length, 25);
+  assert.equal(s[0], null);
+  assert.equal(s[18], null);
+  assert.ok(s[19] && typeof s[19].upper === 'number');
+});
+
+test('atr positivo e finito con high/low/close', () => {
+  const closes = Array.from({ length: 30 }, (_, i) => 100 + i);
+  const highs = closes.map((c) => c + 2);
+  const lows = closes.map((c) => c - 2);
+  const a = atr(highs, lows, closes, 14);
+  assert.ok(Number.isFinite(a) && a > 0, `ATR atteso > 0, ottenuto ${a}`);
+  assert.equal(atr(highs, lows, closes.slice(0, 5), 14), null);
 });
 
 test('forecast produce bande coerenti', () => {
