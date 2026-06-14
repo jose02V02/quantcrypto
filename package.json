@@ -1,19 +1,13 @@
 {
-  "name": "quantcrypto-frontend",
-  "private": true,
+  "name": "ultimaora-live",
   "version": "1.0.0",
-  "type": "module",
+  "description": "UltimaOra Live — Aggregatore intelligente di notizie in tempo reale",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "^4.3.0",
-    "vite": "^5.4.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@supabase/supabase-js": "^2.49.4",
-    "axios": "^1.8.4"
+    "dev:backend":  "cd backend  && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all":  "cd backend && npm install && cd ../frontend && npm install",
+    "build":        "cd frontend && npm run build",
+    "start":        "cd backend  && npm start"
   }
 }
