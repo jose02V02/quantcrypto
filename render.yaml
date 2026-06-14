@@ -1,18 +1,19 @@
 services:
+  # Backend Node.js su Render
   - type: web
-    name: quantcrypto-backend
-    env: node
+    name: ultimaora-backend
+    runtime: node
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: NODE_VERSION
-        value: 22
-      - key: FRONTEND_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: https://ultimaora.vercel.app
+      - key: CACHE_TTL_MINUTES
+        value: 5
+    healthCheckPath: /api/health
+    autoDeploy: true
